@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { Menu, X, Plane } from "lucide-react";
+import roavalogo from "../assets/roavalogo.png";
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -11,7 +14,12 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const links = ["Home", "Plan Trip", "Explore", "About"];
+  const links = [
+    { label: "Home", to: "/" },
+    { label: "Plan Trip", to: "/plan-trip" },
+    { label: "Explore", to: "/#explore" },
+    { label: "About", to: "/#about" },
+  ];
 
   return (
     <nav
@@ -21,21 +29,31 @@ const Navbar = () => {
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between h-16 section-padding">
         {/* Logo */}
-        <a href="#" className="flex items-center gap-2 font-heading font-bold text-xl text-foreground">
-          <Plane className="h-6 w-6 text-primary" />
-          Wanderly
-        </a>
+        <Link
+          to="/"
+          className="flex items-center gap-2 font-heading font-bold text-xl text-foreground leading-none"
+          onClick={() => setMobileOpen(false)}
+        >
+          <div className="h-10 w-auto overflow-hidden flex items-center justify-center">
+            <img src={roavalogo} alt="Roavo Logo" className="h-10 w-auto scale-125" />
+          </div>
+          <span>Roavo</span>
+        </Link>
 
         {/* Desktop Links */}
         <div className="hidden md:flex items-center gap-8">
-          {links.map((l) => (
-            <a
-              key={l}
-              href="#"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          {links.map(({ label, to }) => (
+            <Link
+              key={label}
+              to={to}
+              className={`text-sm font-medium transition-colors ${
+                location.pathname === to
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
             >
-              {l}
-            </a>
+              {label}
+            </Link>
           ))}
         </div>
 
@@ -61,10 +79,15 @@ const Navbar = () => {
       {/* Mobile Menu */}
       {mobileOpen && (
         <div className="md:hidden glass-nav border-t border-border px-6 pb-6 pt-2 space-y-3">
-          {links.map((l) => (
-            <a key={l} href="#" className="block text-sm font-medium text-muted-foreground py-2">
-              {l}
-            </a>
+          {links.map(({ label, to }) => (
+            <Link
+              key={label}
+              to={to}
+              onClick={() => setMobileOpen(false)}
+              className="block text-sm font-medium text-muted-foreground py-2"
+            >
+              {label}
+            </Link>
           ))}
           <div className="flex gap-3 pt-2">
             <button className="text-sm font-medium text-muted-foreground">Log in</button>
