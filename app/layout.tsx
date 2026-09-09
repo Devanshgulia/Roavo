@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
-import { Geist, Inter } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Geist, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -10,33 +10,42 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-const inter = Inter({
-  variable: "--font-inter",
+const plusJakarta = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta",
   subsets: ["latin"],
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#0d9488" },
+    { media: "(prefers-color-scheme: dark)", color: "#090d16" },
+  ],
+};
+
 export const metadata: Metadata = {
-  title: "Roavo - AI-Powered Travel Planning",
-  description: "Create perfect travel itineraries with AI. Plan multi-destination trips, find accommodations, and discover unique experiences tailored to your preferences.",
-  keywords: ["travel planning", "AI travel", "itinerary planner", "vacation planning", "trip planner"],
+  title: "Roavo - Next-Gen AI Travel Planning & Smart Itineraries",
+  description: "Plan multi-city journeys, explore top global destinations, discover curated local experiences, and generate precision day-by-day itineraries with AI.",
+  keywords: ["travel planning", "AI travel", "itinerary planner", "vacation planner", "trip architect", "smart travel"],
   authors: [{ name: "Roavo" }],
   openGraph: {
-    title: "Roavo - Your Journey Starts Here",
-    description: "AI-powered travel planning that creates personalized itineraries for your perfect trip.",
+    title: "Roavo - AI Travel Planning Reimagined",
+    description: "Create personalized travel itineraries powered by intelligent AI recommendation engines.",
     type: "website",
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Roavo - AI-Powered Travel Planning",
-    description: "Create perfect travel itineraries with AI-powered personalization.",
+    title: "Roavo - Next-Gen AI Travel Planning",
+    description: "AI-driven itinerary generation and smart travel planning.",
   },
   robots: {
     index: true,
     follow: true,
   },
-  viewport: "width=device-width, initial-scale=1",
 };
 
 export default function RootLayout({
@@ -47,11 +56,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${inter.variable} font-body antialiased bg-slate-50 dark:bg-slate-950 text-gray-900 dark:text-gray-100 transition-colors duration-300`}
+        className={`${geistSans.variable} ${plusJakarta.variable} font-sans antialiased bg-slate-50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100 transition-colors duration-300 min-h-screen flex flex-col`}
         suppressHydrationWarning
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <div className="min-h-screen flex flex-col bg-pattern">
+          <div className="min-h-screen flex flex-col bg-mesh-light dark:bg-mesh-dark transition-colors duration-300">
             <Header />
             <main className="flex-1">
               {children}

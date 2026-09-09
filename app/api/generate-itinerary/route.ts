@@ -679,7 +679,7 @@ Transport Updates: ${Array.isArray(destLocalData?.transportUpdates) ? destLocalD
       `.trim();
     }).join('\n\n');
 
-    const enhanceItineraryWithScrapedData = (itineraryData: any) => {
+    const enhanceItineraryWithScrapedData = (itineraryData: any, budgetParams: any, tripDays: number) => {
       if (!itineraryData || typeof itineraryData !== 'object') {
         return itineraryData;
       }
@@ -842,20 +842,37 @@ Transport Updates: ${Array.isArray(destLocalData?.transportUpdates) ? destLocalD
       });
 
       // ENFORCE FALLBACK SCHEMA FOR LLM OMISSIONS
-      itineraryData.budget = itineraryData.budget || {
-        total: "Calculated based on preferences",
-        dailyAverage: "Varies",
-        savingTips: ["Book activities in advance", "Use local transport when possible"],
-        splurgeRecommendations: ["Unique guided experiences"]
-      };
+      if (!itineraryData.budget || !itineraryData.budget.total || itineraryData.budget.total === "Calculated based on preferences") {
+        const { budgetLevel, dailyBudget, accommodationType, foodType, activityType, transportType } = budgetParams;
 
-      itineraryData.budget.breakdown = itineraryData.budget.breakdown || {
-        accommodation: "See Where to Stay",
-        food: "Varies significantly by choice",
-        activities: "Depends on schedule",
-        transport: "Varies",
-        extras: "N/A"
-      };
+        const dailyAvgMatch = dailyBudget.match(/\\d+/g);
+        const minDaily = dailyAvgMatch ? parseInt(dailyAvgMatch[0]) : 150;
+        const expectedTotal = minDaily * tripDays;
+
+        itineraryData.budget = {
+          total: "~$" + expectedTotal + "-$" + (expectedTotal * 1.5),
+          dailyAverage: dailyBudget,
+          savingTips: [
+            "Book activities in advance to secure better rates",
+            "Use local transport when possible instead of taxis",
+            "Explore local markets for authentic and cheaper dining options",
+            budgetParams.tips || "Pace your spending throughout the trip"
+          ],
+          splurgeRecommendations: [
+            "A unique guided cultural experience",
+            "One premium dining experience",
+            "Central accommodation for better convenience"
+          ]
+        };
+
+        itineraryData.budget.breakdown = {
+          accommodation: "~40% (" + accommodationType + ")",
+          food: "~30% (" + foodType + ")",
+          activities: "~20% (" + activityType + ")",
+          transport: "~10% (" + transportType + ")",
+          extras: "Variable based on shopping"
+        };
+      }
 
       if (!itineraryData.budget.savingTips) itineraryData.budget.savingTips = [];
 
@@ -1633,10 +1650,24 @@ Follow this structure:
       {
         "day": 1,
         "title": "Day title",
-        "activities": [{"time": "9:00 AM", "name": "Activity", "description": "Details"}]
-      },
+        "destination": "City Name",
+        "activities": [{"time": "9:00 AM", "name": "Activity", "description": "Details", "duration": "2 hours", "cost": "$20", "tips": "Insider tips", "bookingRequired": false, "location": "Address"}]
+      }
       // EXACTLY ${tripDuration} DAYS REQUIRED
     ]
+  },
+  "budget": {
+    "total": "Estimated total",
+    "dailyAverage": "Estimated daily",
+    "savingTips": ["Tip 1", "Tip 2"],
+    "splurgeRecommendations": ["Splurge 1"],
+    "breakdown": {
+      "accommodation": "Cost",
+      "food": "Cost",
+      "activities": "Cost",
+      "transport": "Cost",
+      "extras": "Cost"
+    }
   }
 }`;
 
@@ -1677,29 +1708,58 @@ Follow this structure:
 
     const bookingLinks: BookingLinks = {};
     const primaryDest = destinations[0]?.name || '';
+
+    const generateFallbackLinks = (dest: string, type: string): BookingLink[] => {
+      const encodedDest = encodeURIComponent(dest);
+      if (type === 'hotels') {
+        return [
+          { platform: "Booking.com", url: `https://www.booking.com/searchresults.html?ss=${encodedDest}`, description: `Find the best hotels in ${dest}`, features: ["Wide variety", "Reviews"] },
+          { platform: "Expedia", url: `https://www.expedia.com/Hotel-Search?destination=${encodedDest}`, description: `Compare hotel prices in ${dest}`, features: ["Rewards program"] }
+        ];
+      } else if (type === 'flights') {
+        return [
+          { platform: "Skyscanner", url: `https://www.skyscanner.com/transport/flights/`, description: `Compare flights to ${dest}`, features: ["Price alerts", "Flexible dates"] },
+          { platform: "Google Flights", url: `https://www.google.com/flights?q=flights+to+${encodedDest}`, description: `Find flights to ${dest}`, features: ["Price tracking"] }
+        ];
+      } else if (type === 'cars') {
+        return [
+          { platform: "Rentalcars.com", url: `https://www.rentalcars.com/search-results.html?dropCity=${encodedDest}`, description: `Car rentals in ${dest}`, features: ["Compare brands"] }
+        ];
+      } else if (type === 'activities') {
+        return [
+          { platform: "GetYourGuide", url: `https://www.getyourguide.com/s?q=${encodedDest}`, description: `Tours and activities in ${dest}`, features: ["Easy cancellation"] },
+          { platform: "Viator", url: `https://www.viator.com/searchResults/all?text=${encodedDest}`, description: `Experiences in ${dest}`, features: ["Wide variety"] }
+        ];
+      }
+      return [];
+    };
+
     if (wantsHotelRecommendations && primaryDest) {
       bookingLinks.hotels = await researchBookingLinks(
         `best hotel booking links for ${primaryDest} from ${startDate} to ${endDate} for ${travelers} guests with ${budget} budget`
       );
+      if (!bookingLinks.hotels || bookingLinks.hotels.length === 0) bookingLinks.hotels = generateFallbackLinks(primaryDest, 'hotels');
     }
     if (wantsFlightBooking && departureLocation && primaryDest) {
       bookingLinks.flights = await researchBookingLinks(
         `best flight booking links from ${departureLocation} to ${primaryDest} departing ${startDate} returning ${endDate} for ${travelers} passengers`
       );
+      if (!bookingLinks.flights || bookingLinks.flights.length === 0) bookingLinks.flights = generateFallbackLinks(primaryDest, 'flights');
     }
     if (primaryDest) {
       bookingLinks.cars = await researchBookingLinks(
         `best car rental booking links in ${primaryDest} from ${startDate} to ${endDate}`
       );
+      if (!bookingLinks.cars || bookingLinks.cars.length === 0) bookingLinks.cars = generateFallbackLinks(primaryDest, 'cars');
     }
     if (wantsLocalExperiences && primaryDest) {
       bookingLinks.activities = await researchBookingLinks(
-        `best activity booking links in ${primaryDest} between ${startDate} and ${endDate} within ${budget} budget`
-      );
+        `best activity booking links in ${primaryDest} between ${startDate} and ${endDate} within ${budget} budget`);
+      if (!bookingLinks.activities || bookingLinks.activities.length === 0) bookingLinks.activities = generateFallbackLinks(primaryDest, 'activities');
     }
 
     if (typeof itineraryData === 'object' && itineraryData !== null) {
-      itineraryData = enhanceItineraryWithScrapedData(itineraryData as StructuredItinerary);
+      itineraryData = enhanceItineraryWithScrapedData(itineraryData as StructuredItinerary, budgetGuidance, tripDuration);
       itineraryData.bookingLinks = bookingLinks;
 
 

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { MapPin, Globe, Sparkles, ArrowLeft, Loader } from 'lucide-react';
+import { MapPin, Globe, Sparkles, ArrowLeft, Loader2, Search, Compass, Plane } from 'lucide-react';
 import { getDestImageWFallback } from '@/lib/utils/unsplash';
 
 interface Destination {
@@ -20,9 +20,13 @@ export default function ExplorePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [season, setSeason] = useState('');
-  const [month, setMonth] = useState('');
+  const [season, setSeason] = useState('Season');
+  const [month, setMonth] = useState('This Month');
   const [loadingImages, setLoadingImages] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTag, setSelectedTag] = useState('All');
+
+  const filterTags = ['All', 'Cultural', 'Nature', 'Beaches', 'Culinary', 'Adventure', 'Urban'];
 
   useEffect(() => {
     const fetchInitialDestinations = async () => {
@@ -31,11 +35,10 @@ export default function ExplorePage() {
         const response = await fetch('/api/trending-destinations');
         const data = await response.json();
         
-        setSeason(data.season);
-        setMonth(data.month);
+        if (data.season) setSeason(data.season);
+        if (data.month) setMonth(data.month);
         
-        
-        const destinationsWithImages = await addImageUrlsToDestinations(data.destinations);
+        const destinationsWithImages = await addImageUrlsToDestinations(data.destinations || []);
         setDestinations(destinationsWithImages);
       } catch (error) {
         console.error('Error fetching destinations:', error);
@@ -57,9 +60,7 @@ export default function ExplorePage() {
       const data = await response.json();
       
       if (data.destinations && data.destinations.length > 0) {
-        
         const newDestinationsWithImages = await addImageUrlsToDestinations(data.destinations);
-        
         setDestinations(prev => [...prev, ...newDestinationsWithImages]);
         setCurrentPage(nextPage);
         setHasMore(data.hasMore);
@@ -74,16 +75,14 @@ export default function ExplorePage() {
   };
 
   const addImageUrlsToDestinations = async (destinationsToProcess: Destination[]) => {
-    const destinationsWithImages = await Promise.all(
+    return Promise.all(
       destinationsToProcess.map(async (destination) => {
         try {
-          
           const imageUrl = await getDestImageWFallback({
             name: destination.name,
             country: destination.country,
             imageKeywords: destination.imageKeywords
           });
-          
           return { ...destination, imageUrl };
         } catch (error) {
           console.error(`Error fetching image for ${destination.name}:`, error);
@@ -91,11 +90,8 @@ export default function ExplorePage() {
         }
       })
     );
-    
-    return destinationsWithImages;
   };
 
-  
   const encodeDestination = (destination: Destination) => {
     return encodeURIComponent(JSON.stringify({
       name: `${destination.name}, ${destination.country}`,
@@ -103,85 +99,170 @@ export default function ExplorePage() {
     }));
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-teal-50">
-      
-      <header className="bg-gradient-to-r from-teal-600 via-cyan-600 to-blue-600 text-white py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center mb-6">
-            <Link href="/" className="flex items-center text-white hover:text-teal-100 transition-colors">
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              <span>Back to Home</span>
-            </Link>
-          </div>
-          
-          <h1 className="text-4xl md:text-5xl font-display mb-4">Explore Trending Destinations</h1>
-          <p className="text-xl text-teal-100 max-w-3xl">
-            Discover the perfect places to visit this {season}, with ideal weather conditions and unique seasonal experiences.
-          </p>
-        </div>
-      </header>
+  const filteredDestinations = useMemo(() => {
+    return destinations.filter((dest) => {
+      const matchesSearch = 
+        dest.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        dest.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        dest.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        dest.mainAttraction.toLowerCase().includes(searchQuery.toLowerCase());
 
+      if (selectedTag === 'All') return matchesSearch;
       
-      <main className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+      const textToSearch = `${dest.description} ${dest.mainAttraction} ${dest.imageKeywords}`.toLowerCase();
+      const matchesTag = textToSearch.includes(selectedTag.toLowerCase());
+      
+      return matchesSearch && matchesTag;
+    });
+  }, [destinations, searchQuery, selectedTag]);
+
+  return (
+    <div className="min-h-screen pb-24">
+      {/* Top Banner Header */}
+      <section className="relative pt-12 pb-16 px-4 sm:px-6 lg:px-8 border-b border-slate-200/70 dark:border-slate-800/80 bg-gradient-to-b from-teal-500/5 via-cyan-500/5 to-transparent">
+        <div className="max-w-7xl mx-auto">
+          <Link
+            href="/"
+            className="inline-flex items-center text-xs font-semibold text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 transition-colors mb-6 group"
+          >
+            <ArrowLeft className="w-4 h-4 mr-1.5 group-hover:-translate-x-1 transition-transform" />
+            <span>Back to Home</span>
+          </Link>
+
+          <div className="max-w-3xl space-y-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 text-teal-600 dark:text-teal-400 text-xs font-semibold border border-teal-500/20">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Curated for {month} • {season}</span>
+            </div>
+            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+              Explore Trending Destinations
+            </h1>
+            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
+              Discover top global hotspots with peak seasonal weather, iconic attractions, and ready-to-customize AI trip itineraries.
+            </p>
+          </div>
+
+          {/* Search & Filter Bar */}
+          <div className="mt-8 flex flex-col sm:flex-row gap-4 items-center justify-between">
+            <div className="relative w-full sm:max-w-md">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search city, country, or keyword..."
+                className="w-full pl-10 pr-4 py-2.5 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500 shadow-sm"
+              />
+            </div>
+
+            {/* Category Filter Chips */}
+            <div className="flex flex-wrap gap-1.5 w-full sm:w-auto">
+              {filterTags.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => setSelectedTag(tag)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+                    selectedTag === tag
+                      ? 'bg-teal-600 text-white shadow-sm'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Grid */}
+      <main className="max-w-7xl mx-auto pt-10 px-4 sm:px-6 lg:px-8">
         {isLoading ? (
-          <div className="flex justify-center items-center py-32">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-teal-500"></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+              <div key={i} className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900">
+                <div className="h-52 skeleton-shimmer"></div>
+                <div className="p-5 space-y-3">
+                  <div className="h-5 w-3/4 skeleton-shimmer rounded"></div>
+                  <div className="h-4 w-full skeleton-shimmer rounded"></div>
+                  <div className="h-10 w-full skeleton-shimmer rounded-xl mt-4"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredDestinations.length === 0 ? (
+          <div className="text-center py-20 bg-white/50 dark:bg-slate-900/50 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 p-8">
+            <Compass className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">No destinations found</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
+              Try adjusting your search keywords or choosing &quot;All&quot; categories.
+            </p>
+            <button
+              onClick={() => { setSearchQuery(''); setSelectedTag('All'); }}
+              className="btn-secondary !py-2 !px-4 !text-xs"
+            >
+              Reset Filters
+            </button>
           </div>
         ) : (
           <>
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center px-6 py-3 bg-blue-50 rounded-full mb-6">
-                <Sparkles className="w-5 h-5 text-blue-600 mr-2" />
-                <span className="text-blue-700 font-semibold">Hot Destinations for {month}</span>
-              </div>
-              <h2 className="text-4xl font-display text-gray-900 mb-6">
-                Where Will You Go This {season}?
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Browse these trending destinations and start planning your perfect getaway.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              {destinations.map((destination, index) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {filteredDestinations.map((destination, index) => (
                 <div
                   key={index}
-                  className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 group"
+                  className="glass-card glass-card-hover rounded-2xl overflow-hidden flex flex-col group"
                 >
-                  <div className="h-48 relative overflow-hidden">
+                  <div className="h-52 relative overflow-hidden bg-slate-100 dark:bg-slate-800">
                     {destination.imageUrl ? (
                       <img
                         src={destination.imageUrl}
                         alt={destination.name}
-                        className="absolute inset-0 w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                        loading="lazy"
                       />
                     ) : (
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-teal-400 animate-pulse" />
+                      <div className="w-full h-full bg-gradient-to-tr from-teal-500/20 to-cyan-500/20 flex items-center justify-center">
+                        <MapPin className="w-8 h-8 text-teal-500 opacity-60" />
+                      </div>
                     )}
-                    
-                    <div className="absolute inset-0 bg-opacity-30 flex items-center justify-center">
-                      <span className="text-white text-2xl font-bold drop-shadow-lg">{destination.name}</span>
+
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent"></div>
+
+                    <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
+                      <div>
+                        <span className="text-xs font-medium uppercase tracking-wider text-teal-300">
+                          {destination.country}
+                        </span>
+                        <h3 className="text-xl font-bold text-white leading-tight">
+                          {destination.name}
+                        </h3>
+                      </div>
+                      {destination.weather && (
+                        <span className="px-2 py-1 rounded-md bg-white/20 backdrop-blur-md text-[11px] font-semibold text-white">
+                          {destination.weather.split(',')[0]}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div className="p-6">
-                    <h3 className="text-xl font-display text-gray-900 mb-2">{destination.name}, {destination.country}</h3>
-                    <p className="text-gray-600 text-sm mb-4">{destination.description}</p>
-                    <div className="space-y-2 mb-6">
-                      <div className="flex items-start">
-                        <MapPin className="w-4 h-4 text-teal-600 mt-1 mr-2 flex-shrink-0" />
-                        <span className="text-sm text-gray-700">{destination.mainAttraction}</span>
-                      </div>
-                      <div className="flex items-start">
-                        <Globe className="w-4 h-4 text-blue-600 mt-1 mr-2 flex-shrink-0" />
-                        <span className="text-sm text-gray-700">{destination.weather}</span>
+
+                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
+                      {destination.description}
+                    </p>
+
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-2 text-xs text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-3.5 h-3.5 text-teal-500 shrink-0" />
+                        <span className="truncate">{destination.mainAttraction}</span>
                       </div>
                     </div>
+
                     <Link
                       href={`/planner?destination=${encodeDestination(destination)}`}
-                      className="block w-full py-3 bg-gradient-to-r from-teal-500 to-blue-500 text-white text-center rounded-xl font-medium hover:from-teal-600 hover:to-blue-600 transition-colors"
+                      className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold text-center text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/50 hover:bg-teal-600 hover:text-white dark:hover:bg-teal-500 dark:hover:text-slate-950 border border-teal-200 dark:border-teal-800/60 transition-all duration-200 flex items-center justify-center gap-1.5"
                     >
-                      Plan Trip to {destination.name}
+                      <Plane className="w-3.5 h-3.5" />
+                      <span>Plan Trip to {destination.name}</span>
                     </Link>
                   </div>
                 </div>
@@ -193,17 +274,17 @@ export default function ExplorePage() {
                 <button
                   onClick={fetchMoreDestinations}
                   disabled={loadingImages}
-                  className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl font-medium hover:from-purple-700 hover:to-blue-700 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
+                  className="btn-primary !py-3 !px-8 !text-sm group"
                 >
                   {loadingImages ? (
                     <>
-                      <Loader className="w-5 h-5 mr-3 animate-spin" />
-                      Loading More Destinations...
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <span>Loading more destinations...</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-5 h-5 mr-3" />
-                      Discover More Destinations
+                      <Sparkles className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
+                      <span>Discover More Destinations</span>
                     </>
                   )}
                 </button>
@@ -214,4 +295,4 @@ export default function ExplorePage() {
       </main>
     </div>
   );
-} 
+}

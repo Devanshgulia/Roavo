@@ -1,7 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sparkles, Clock, MapPin, DollarSign, Loader2, CheckCircle, AlertCircle, ArrowRight, Plus, Minus, Edit } from 'lucide-react';
+import { 
+  Send, Bot, User, Sparkles, Clock, MapPin, DollarSign, 
+  Loader2, CheckCircle, AlertCircle, ArrowRight, Plus, Minus, 
+  Edit, Maximize2, Minimize2, X, MessageSquare
+} from 'lucide-react';
 import { StructuredItinerary } from '@/types/travel';
 import ItineraryChangeNotification from './ItineraryChangeNotification';
 
@@ -44,20 +48,13 @@ export default function TravelAssistantChat({
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
-      content: `Hi! I'm your travel assistant. I can help you modify your ${itinerary.destinations.map(d => d.name).join(' & ')} itinerary. Try saying things like:
-
-• "Make day 3 less busy"
-• "Add more cultural activities" 
-• "What's the best way to get around?"
-• "This is too expensive, help me save money"
-
-What would you like to change or know about your trip?`,
+      content: `Hello! I'm your AI Travel Concierge. I can help refine your trip to ${itinerary.destinations.map(d => d.name).join(' & ')}. You can ask me to re-balance days, swap activities, find budget alternatives, or add specific spots!`,
       timestamp: new Date().toISOString(),
       suggestions: [
         "Make my itinerary less busy",
         "Add more cultural activities",
         "Help me save money",
-        "What should I pack?"
+        "Suggest top local food spots"
       ]
     }
   ]);
@@ -119,9 +116,6 @@ What would you like to change or know about your trip?`,
     setIsLoading(true);
 
     try {
-      console.log("Sending message to chat assistant:", message);
-      console.log("Current itinerary:", JSON.stringify(itinerary).substring(0, 200) + "...");
-      
       const response = await fetch('/api/chat-assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -138,7 +132,6 @@ What would you like to change or know about your trip?`,
       }
 
       const data = await response.json();
-      console.log("Received chat assistant response:", data);
       
       const assistantMessage: ChatMessage = {
         role: 'assistant',
@@ -151,16 +144,13 @@ What would you like to change or know about your trip?`,
 
       setMessages(prev => [...prev, assistantMessage]);
 
-      
       if (data.updatedItinerary) {
-        
         if (data.requiresConfirmation) {
           setPendingChanges({
             itinerary: data.updatedItinerary,
             changes: data.changes || []
           });
         } else {
-          console.log("Changes don't require confirmation, applying immediately");
           onItineraryUpdate(data.updatedItinerary);
           
           setTimeout(() => {
@@ -170,7 +160,6 @@ What would you like to change or know about your trip?`,
               timestamp: new Date().toISOString()
             };
             setMessages(prev => [...prev, confirmationMessage]);
-            
             
             setNotificationData({
               message: "Your itinerary has been successfully updated!",
@@ -200,24 +189,15 @@ What would you like to change or know about your trip?`,
 
   const confirmChanges = () => {
     if (pendingChanges) {
-      console.log("Confirming pending changes...");
-      console.log("Changes to apply:", pendingChanges.changes);
-      
       try {
-        
         onItineraryUpdate(pendingChanges.itinerary);
-        console.log("Updated itinerary applied successfully");
-        
         
         setNotificationData({
           message: "Your itinerary has been successfully updated!",
           changes: pendingChanges.changes
         });
         setShowNotification(true);
-        
-        
         setPendingChanges(null);
-        
         
         const confirmationMessage: ChatMessage = {
           role: 'assistant',
@@ -225,21 +205,15 @@ What would you like to change or know about your trip?`,
           timestamp: new Date().toISOString()
         };
         setMessages(prev => [...prev, confirmationMessage]);
-        
-        
         setTimeout(scrollToBottom, 100);
       } catch (error) {
         console.error("Error applying itinerary changes:", error);
-        
-        
         const errorMessage: ChatMessage = {
           role: 'assistant',
           content: "I'm sorry, I encountered an error while applying the changes. Please try again.",
           timestamp: new Date().toISOString()
         };
         setMessages(prev => [...prev, errorMessage]);
-        
-        
         setTimeout(scrollToBottom, 100);
       }
     }
@@ -266,151 +240,92 @@ What would you like to change or know about your trip?`,
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
-  };
-
   if (!isOpen) {
     return (
       <button
         onClick={onToggle}
-        className="fixed bottom-6 right-6 bg-gradient-to-r from-teal-600 to-cyan-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 z-50"
+        className="fixed bottom-6 right-6 p-4 rounded-full bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-xl shadow-teal-600/30 hover:shadow-2xl hover:scale-105 transition-all duration-300 z-50 flex items-center gap-2 group"
+        aria-label="Open AI Concierge"
       >
-        <Bot className="w-6 h-6" />
+        <span className="w-2 h-2 rounded-full bg-emerald-300 animate-ping"></span>
+        <Bot className="w-5 h-5" />
+        <span className="text-sm font-semibold pr-1 hidden sm:inline">Ask AI Copilot</span>
       </button>
     );
   }
 
   return (
     <div 
-      className={`fixed bottom-6 right-6 bg-white rounded-2xl shadow-2xl border border-gray-200 
+      className={`fixed bottom-6 right-6 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 
                 flex flex-col z-50 overflow-hidden transition-all duration-300 ease-in-out
-                ${isExpanded ? 'w-[800px] h-[750px]' : 'w-[450px] h-[650px]'}`}
+                ${isExpanded ? 'w-[calc(100vw-2rem)] sm:w-[650px] h-[700px]' : 'w-[calc(100vw-2rem)] sm:w-[420px] h-[580px]'}`}
     >
-      
-      <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white p-4 flex items-center justify-between">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-teal-600 to-cyan-600 text-white p-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center space-x-3">
-          <div className="bg-white/20 p-2 rounded-full">
-            <Bot className="w-5 h-5" />
+          <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
+            <Bot className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="font-semibold">Travel Assistant</h3>
-            <p className="text-xs text-teal-100">Ready to help with your trip</p>
+            <div className="flex items-center gap-1.5">
+              <h3 className="font-bold text-sm">AI Travel Concierge</h3>
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+            </div>
+            <p className="text-[11px] text-teal-100">Live trip modifier & local advice</p>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1">
           <button
-            onClick={toggleExpanded}
-            className="text-white/80 hover:text-white transition-colors p-1 rounded-full"
-            title={isExpanded ? "Collapse chat" : "Expand chat"}
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+            title={isExpanded ? "Collapse" : "Expand"}
           >
-            <ArrowRight className={`w-4 h-4 transform transition-transform ${isExpanded ? 'rotate-90' : 'rotate-0'}`} />
+            {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
           </button>
           <button
             onClick={onToggle}
-            className="text-white/80 hover:text-white transition-colors ml-2"
+            className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+            title="Close"
           >
-            ×
+            <X className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Messages Scroll Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-slate-50/50 dark:bg-slate-950/40">
         {messages.map((message, index) => (
           <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[85%] ${message.role === 'user' ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-900'} rounded-2xl p-3 animate-fadeIn`}>
-              <div className="flex items-start space-x-2">
+            <div className={`max-w-[88%] rounded-2xl p-3.5 text-xs sm:text-sm leading-relaxed ${
+              message.role === 'user' 
+                ? 'bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-sm' 
+                : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 shadow-sm'
+            }`}>
+              <div className="flex items-start gap-2">
                 {message.role === 'assistant' && (
-                  <Bot className="w-4 h-4 mt-1 text-teal-600" />
+                  <Bot className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
                 )}
                 <div className="flex-1">
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  <p className={`text-xs mt-1 ${message.role === 'user' ? 'text-teal-100' : 'text-gray-500'}`}>
+                  <p className="whitespace-pre-wrap">{message.content}</p>
+                  <p className={`text-[10px] mt-1.5 ${message.role === 'user' ? 'text-teal-100' : 'text-slate-400'}`}>
                     {formatTimestamp(message.timestamp)}
                   </p>
                 </div>
                 {message.role === 'user' && (
-                  <User className="w-4 h-4 mt-1 text-teal-100" />
+                  <User className="w-4 h-4 text-white/80 shrink-0 mt-0.5" />
                 )}
               </div>
 
-              
-              {message.changes && message.changes.length > 0 && (
-                <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <h4 className="text-sm font-semibold text-blue-900 mb-2 flex items-center">
-                    <Sparkles className="w-4 h-4 mr-1" />
-                    Changes Made:
-                  </h4>
-                  <ul className="space-y-2">
-                    {message.changes.map((change, idx) => (
-                      <li key={idx} className="text-xs text-blue-800">
-                        <div className="flex items-start mb-1">
-                          <span className="mr-2 mt-0.5">
-                            {change.type === 'addition' && <Plus className="w-3 h-3 text-green-600" />}
-                            {change.type === 'modification' && <Edit className="w-3 h-3 text-amber-600" />}
-                            {change.type === 'removal' && <Minus className="w-3 h-3 text-red-600" />}
-                          </span>
-                          <span className="flex-1 font-medium">{change.description}</span>
-                        </div>
-                        
-                        
-                        {change.affectedDays && change.affectedDays.length > 0 && (
-                          <div className="ml-5 mb-2 text-blue-600 font-medium">
-                            Day{change.affectedDays.length > 1 ? 's' : ''}: {change.affectedDays.join(', ')}
-                          </div>
-                        )}
-                        
-                        
-                        {(change.before || change.after) && (
-                          <div className="ml-5 mt-1 p-2 bg-white rounded border border-blue-100">
-                            {change.type === 'modification' && (
-                              <>
-                                <div className="mb-1">
-                                  <span className="text-gray-500 font-medium">Before:</span>
-                                  <p className="text-gray-700">{change.before}</p>
-                                </div>
-                                <div className="flex items-center my-1 text-blue-400">
-                                  <div className="flex-1 h-px bg-blue-100"></div>
-                                  <ArrowRight className="w-3 h-3 mx-1" />
-                                  <div className="flex-1 h-px bg-blue-100"></div>
-                                </div>
-                                <div>
-                                  <span className="text-gray-500 font-medium">After:</span>
-                                  <p className="text-teal-700">{change.after}</p>
-                                </div>
-                              </>
-                            )}
-                            {change.type === 'addition' && (
-                              <div>
-                                <span className="text-gray-500 font-medium">Added:</span>
-                                <p className="text-green-700">{change.after}</p>
-                              </div>
-                            )}
-                            {change.type === 'removal' && (
-                              <div>
-                                <span className="text-gray-500 font-medium">Removed:</span>
-                                <p className="text-red-700">{change.before}</p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              
+              {/* Suggestions */}
               {message.suggestions && message.suggestions.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  <p className="text-xs text-gray-600">Try asking:</p>
-                  <div className="flex flex-wrap gap-2">
+                <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-700/60 space-y-1.5">
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">Quick Prompts:</p>
+                  <div className="flex flex-wrap gap-1.5">
                     {message.suggestions.map((suggestion, idx) => (
                       <button
                         key={idx}
                         onClick={() => handleSuggestionClick(suggestion)}
-                        className="text-xs bg-white border border-gray-300 text-gray-700 px-3 py-1 rounded-full hover:bg-gray-50 transition-colors"
+                        className="text-[11px] bg-slate-50 dark:bg-slate-700 hover:bg-teal-50 dark:hover:bg-teal-950/60 text-slate-700 dark:text-slate-200 hover:text-teal-600 dark:hover:text-teal-300 border border-slate-200 dark:border-slate-600 px-2.5 py-1 rounded-full transition-colors"
                       >
                         {suggestion}
                       </button>
@@ -422,60 +337,44 @@ What would you like to change or know about your trip?`,
           </div>
         ))}
 
-        
+        {/* Pending Confirmation Block */}
         {pendingChanges && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 animate-pulse">
-            <div className="flex items-center mb-2">
-              <AlertCircle className="w-5 h-5 text-yellow-600 mr-2" />
-              <h4 className="font-semibold text-yellow-900">Confirm Changes</h4>
+          <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl p-3.5">
+            <div className="flex items-center gap-2 mb-2 text-amber-900 dark:text-amber-200 font-bold text-xs">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Confirm Modifications</span>
             </div>
-                          <p className="text-sm text-yellow-800 mb-3">
-                I&apos;ve prepared the following changes to your itinerary:
-              </p>
-            
-            
-            <div className="mb-4 max-h-40 overflow-y-auto p-2 bg-white/60 rounded border border-yellow-100">
-              <ul className="space-y-2 text-sm">
-                {pendingChanges.changes.map((change, idx) => (
-                  <li key={idx} className="flex items-start">
-                    <span className="mr-2 mt-0.5">
-                      {change.type === 'addition' && <Plus className="w-3 h-3 text-green-600" />}
-                      {change.type === 'modification' && <Edit className="w-3 h-3 text-amber-600" />}
-                      {change.type === 'removal' && <Minus className="w-3 h-3 text-red-600" />}
-                    </span>
-                    <span className="text-gray-800">{change.description}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            
-            <div className="flex space-x-2">
+            <ul className="space-y-1 text-xs text-amber-800 dark:text-amber-300 mb-3">
+              {pendingChanges.changes.map((c, i) => (
+                <li key={i} className="flex items-start gap-1.5">
+                  <span className="mt-0.5">•</span>
+                  <span>{c.description}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="flex gap-2">
               <button
                 onClick={confirmChanges}
-                className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center justify-center"
+                className="flex-1 py-1.5 px-3 rounded-lg bg-teal-600 text-white font-semibold text-xs hover:bg-teal-700 transition-colors flex items-center justify-center gap-1"
               >
-                <CheckCircle className="w-4 h-4 mr-1" />
-                Apply Changes
+                <CheckCircle className="w-3.5 h-3.5" />
+                <span>Apply</span>
               </button>
               <button
                 onClick={rejectChanges}
-                className="flex-1 bg-gray-300 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-400 transition-colors"
+                className="py-1.5 px-3 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-xs hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
               >
-                Keep Original
+                Cancel
               </button>
             </div>
           </div>
         )}
 
-        
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-2xl p-3 flex items-center space-x-2">
-              <div className="relative">
-                <Loader2 className="w-5 h-5 animate-spin text-teal-600" />
-                <div className="absolute inset-0 border-t-2 border-teal-200 rounded-full animate-ping opacity-20"></div>
-              </div>
-              <span className="text-sm text-gray-600">Thinking...</span>
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-3 flex items-center space-x-2">
+              <Loader2 className="w-4 h-4 animate-spin text-teal-600 dark:text-teal-400" />
+              <span className="text-xs text-slate-500 dark:text-slate-400">Consulting AI model...</span>
             </div>
           </div>
         )}
@@ -483,58 +382,29 @@ What would you like to change or know about your trip?`,
         <div ref={messagesEndRef} />
       </div>
 
-      
-      <div className="p-4 border-t border-gray-200">
-        <div className="flex space-x-2">
+      {/* Input Area */}
+      <div className="p-3.5 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+        <div className="flex items-center space-x-2">
           <input
             ref={inputRef}
             type="text"
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask me anything about your trip..."
-            className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            placeholder="Type a change (e.g. 'Swap Day 2 museum for a boat tour')..."
+            className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-4 py-2 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500"
             disabled={isLoading}
           />
           <button
             onClick={() => sendMessage(inputMessage)}
             disabled={!inputMessage.trim() || isLoading}
-            className="bg-teal-600 text-white p-2 rounded-full hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2.5 rounded-full bg-teal-600 hover:bg-teal-700 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
           >
             <Send className="w-4 h-4" />
           </button>
         </div>
-        
-        
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            onClick={() => handleSuggestionClick("Make my itinerary less busy")}
-            className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-full hover:bg-gray-200 transition-colors flex items-center"
-            disabled={isLoading}
-          >
-            <Clock className="w-3 h-3 mr-1" />
-            Less Busy
-          </button>
-          <button
-            onClick={() => handleSuggestionClick("Add more cultural activities")}
-            className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-full hover:bg-gray-200 transition-colors flex items-center"
-            disabled={isLoading}
-          >
-            <MapPin className="w-3 h-3 mr-1" />
-            More Culture
-          </button>
-          <button
-            onClick={() => handleSuggestionClick("Help me save money")}
-            className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-full hover:bg-gray-200 transition-colors flex items-center"
-            disabled={isLoading}
-          >
-            <DollarSign className="w-3 h-3 mr-1" />
-            Save Money
-          </button>
-        </div>
       </div>
 
-      
       <ItineraryChangeNotification
         isVisible={showNotification}
         message={notificationData.message}
@@ -543,4 +413,4 @@ What would you like to change or know about your trip?`,
       />
     </div>
   );
-} 
+}

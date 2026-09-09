@@ -370,37 +370,37 @@ export default function ItineraryDisplay({
   };
 
   const getTabStyle = (tabName: string) => 
-    `px-8 py-4 text-sm font-medium transition-all duration-200 relative flex items-center whitespace-nowrap ${
+    `px-6 py-3.5 text-sm font-semibold transition-all duration-200 relative flex items-center whitespace-nowrap ${
       activeTab === tabName 
-        ? 'bg-white text-blue-600 border-b-2 border-blue-600 -mb-px z-10 shadow-sm' 
-        : 'bg-gray-50 text-gray-600 hover:text-gray-800 hover:bg-gray-100 border-b border-gray-200'
+        ? 'bg-white dark:bg-slate-900 text-teal-600 dark:text-teal-400 border-b-2 border-teal-600 dark:border-teal-400 -mb-px z-10' 
+        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100/50 dark:hover:bg-slate-800/40'
     }`;
 
   if (!data) {
     return (
-      <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
+      <div className="glass-card rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
+        <div className="bg-gradient-to-r from-teal-600 to-cyan-600 p-6 text-white">
           <h2 className="text-2xl font-bold flex items-center">
             <Plane className="w-6 h-6 mr-3" />
             {destination}
           </h2>
-          <p className="text-blue-100 mt-1">
+          <p className="text-teal-100 mt-1">
             {formatDate(startDate)} - {formatDate(endDate)}
           </p>
         </div>
         <div className="p-6">
-          <div className="prose prose-blue max-w-none">
+          <div className="prose prose-teal dark:prose-invert max-w-none">
             <ReactMarkdown>{typeof itinerary === 'string' ? itinerary : ''}</ReactMarkdown>
           </div>
-              </div>
-    </div>
-  );
-}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
+    <div className="glass-card rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-800">
       
-      <div className="relative h-64 bg-gradient-to-r from-blue-600 to-purple-600 overflow-hidden">
+      <div className="relative h-64 bg-gradient-to-r from-teal-700 via-cyan-700 to-blue-700 overflow-hidden">
         {data.destinations[0] && images[data.destinations[0].name]?.heroImage && !loadingImages && (
           <>
             <div className="absolute inset-0">
@@ -413,26 +413,26 @@ export default function ItineraryDisplay({
             
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent"></div>
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-900/30 to-purple-900/30"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-teal-900/30 to-blue-900/30"></div>
           </>
         )}
         <div className="relative z-10 p-6 text-white h-full flex flex-col justify-end">
-          <div className="flex justify-between items-end">
+          <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4">
             <div>
               <h2 className="text-3xl font-bold mb-2 flex items-center">
-                <Plane className="w-8 h-8 mr-3" />
+                <Plane className="w-8 h-8 mr-3 text-teal-300" />
                 {destination}
               </h2>
-              <p className="text-white/90 text-lg mb-2">
+              <p className="text-white/90 text-sm sm:text-base mb-2">
                 {formatDate(startDate)} - {formatDate(endDate)}
               </p>
-              <div className="flex items-center gap-4 text-sm text-white/80">
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
+              <div className="flex items-center gap-4 text-xs sm:text-sm text-white/80">
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md">
+                  <Calendar className="w-3.5 h-3.5" />
                   {data.itinerary.days.length} days
                 </span>
-                <span className="flex items-center gap-1">
-                  <MapPin className="w-4 h-4" />
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 backdrop-blur-md">
+                  <MapPin className="w-3.5 h-3.5" />
                   {data.destinations.length} destinations
                 </span>
               </div>
@@ -442,7 +442,7 @@ export default function ItineraryDisplay({
                 <button
                   onClick={downloadItinerary}
                   disabled={isDownloading}
-                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-lg transition-all duration-200 flex items-center text-sm font-medium disabled:opacity-50 backdrop-blur-sm"
+                  className="bg-white/20 hover:bg-white/30 text-white px-5 py-2.5 rounded-xl transition-all duration-200 flex items-center text-sm font-semibold disabled:opacity-50 backdrop-blur-md shadow-md hover:scale-105"
                 >
                   {isDownloading ? (
                     <>
@@ -463,8 +463,8 @@ export default function ItineraryDisplay({
       </div>
 
       
-      <div className="border-b border-gray-200 bg-white">
-        <nav className="flex overflow-x-auto px-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50">
+        <nav className="flex overflow-x-auto px-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {[
             { id: 'overview', label: 'Trip Overview', icon: Star },
             { id: 'daily-plan', label: 'Daily Plan', icon: Calendar },
@@ -480,7 +480,7 @@ export default function ItineraryDisplay({
                 onClick={() => setActiveTab(tab.id)}
                 className={getTabStyle(tab.id)}
               >
-                <Icon className="w-4 h-4 mr-3" />
+                <Icon className="w-4 h-4 mr-2" />
                 {tab.label}
               </button>
             );
@@ -689,15 +689,19 @@ export default function ItineraryDisplay({
                               
                               <p className="text-gray-700 mb-4">{activity.description}</p>
                               
-                              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-600 mb-4">
-                                <div className="flex items-center">
-                                  <Clock className="w-4 h-4 mr-1" />
-                                  {activity.duration}
-                                </div>
-                                <div className="flex items-center">
-                                  <Wallet className="w-4 h-4 mr-1" />
-                                  {activity.cost}
-                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm text-gray-600 mb-4">
+                                  {activity.duration && (
+                                    <div className="flex items-center">
+                                      <Clock className="w-4 h-4 mr-1" />
+                                      {activity.duration}
+                                    </div>
+                                  )}
+                                  {activity.cost && (
+                                    <div className="flex items-center">
+                                      <Wallet className="w-4 h-4 mr-1" />
+                                      {activity.cost}
+                                    </div>
+                                  )}
                                 {activity.bookingRequired && (
                                   <div className="flex items-center">
                                     <Camera className="w-4 h-4 mr-1" />

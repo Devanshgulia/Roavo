@@ -2,8 +2,13 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { Plane, MapPin, Heart, Shield, Star, Users, Sparkles, Globe } from 'lucide-react';
+import { 
+  Plane, MapPin, Heart, Shield, Star, Users, Sparkles, Globe, 
+  ArrowRight, Compass, Calendar, CheckCircle2, ChevronRight,
+  TrendingUp, Clock, Coffee, Camera
+} from 'lucide-react';
 import { getDestImageWFallback } from '@/lib/utils/unsplash';
+import { useRouter } from 'next/navigation';
 
 interface Destination {
   name: string;
@@ -16,15 +21,23 @@ interface Destination {
 }
 
 export default function HomePage() {
+  const router = useRouter();
   const [isLoaded, setIsLoaded] = useState(false);
   const [trendingDestinations, setTrendingDestinations] = useState<Destination[]>([]);
-  const [season, setSeason] = useState<string>('');
-  const [month, setMonth] = useState<string>('');
-  const [isLoadingDestinations, setIsLoadingDestinations] = useState(false);
+  const [season, setSeason] = useState<string>('Season');
+  const [month, setMonth] = useState<string>('This Month');
+  const [isLoadingDestinations, setIsLoadingDestinations] = useState(true);
+  const [quickPrompt, setQuickPrompt] = useState('');
+
+  const samplePrompts = [
+    "7 days in Tokyo & Kyoto on a foodie budget",
+    "Romantic 5-day getaway to the Amalfi Coast",
+    "Backpacking Southeast Asia for 14 days",
+    "Weekend road trip through Swiss Alps"
+  ];
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoaded(true), 100);
-    return () => clearTimeout(timer);
+    setIsLoaded(true);
   }, []);
 
   useEffect(() => {
@@ -34,17 +47,14 @@ export default function HomePage() {
         const response = await fetch('/api/trending-destinations');
         const data = await response.json();
         
-        
         const destinationsWithImages = await Promise.all(
           (data?.destinations || []).map(async (destination: Destination) => {
             try {
-              
               const imageUrl = await getDestImageWFallback({
                 name: destination.name,
                 country: destination.country,
                 imageKeywords: destination.imageKeywords
               });
-              
               return { ...destination, imageUrl };
             } catch (error) {
               console.error(`Error fetching image for ${destination.name}:`, error);
@@ -54,8 +64,8 @@ export default function HomePage() {
         );
         
         setTrendingDestinations(destinationsWithImages);
-        setSeason(data.season);
-        setMonth(data.month);
+        if (data.season) setSeason(data.season);
+        if (data.month) setMonth(data.month);
       } catch (error) {
         console.error('Error fetching trending destinations:', error);
       } finally {
@@ -66,46 +76,19 @@ export default function HomePage() {
     fetchTrendingDestinations();
   }, []);
 
-  const features = [
-    {
-      icon: <Plane className="w-8 h-8" />,
-      title: "AI-Powered Personalization",
-      description: "Our advanced AI analyzes your preferences to create perfectly tailored itineraries that match your travel style and interests.",
-      color: "from-teal-500 to-cyan-500"
-    },
-    {
-      icon: <MapPin className="w-8 h-8" />,
-      title: "Smart Route Planning",
-      description: "Optimized multi-destination planning with intelligent routing and timing to maximize your travel experience.",
-      color: "from-blue-500 to-teal-500"
-    },
-    {
-      icon: <Heart className="w-8 h-8" />,
-      title: "Curated Experiences",
-      description: "Access to unique activities, private tours, and local experiences that create lasting memories.",
-      color: "from-cyan-500 to-blue-500"
-    },
-    {
-      icon: <Shield className="w-8 h-8" />,
-      title: "Seamless Support",
-      description: "24/7 digital concierge with downloadable itineraries, real-time updates, and instant sharing capabilities.",
-      color: "from-teal-600 to-cyan-600"
-    },
-    {
-      icon: <Star className="w-8 h-8" />,
-      title: "Premium Accommodations",
-      description: "Handpicked hotels, resorts, and unique stays that offer exceptional comfort and unforgettable experiences.",
-      color: "from-blue-600 to-teal-600"
-    },
-    {
-      icon: <Users className="w-8 h-8" />,
-      title: "Group-Friendly Planning",
-      description: "Perfect for solo adventures, romantic getaways, family trips, or group expeditions of any size.",
-      color: "from-cyan-600 to-blue-600"
+  const handleQuickPromptSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickPrompt.trim()) {
+      router.push('/planner');
+      return;
     }
-  ];
+    const encoded = encodeURIComponent(JSON.stringify({
+      name: quickPrompt,
+      description: quickPrompt
+    }));
+    router.push(`/planner?destination=${encoded}`);
+  };
 
-  
   const encodeDestination = (destination: Destination) => {
     return encodeURIComponent(JSON.stringify({
       name: `${destination.name}, ${destination.country}`,
@@ -113,201 +96,368 @@ export default function HomePage() {
     }));
   };
 
+  const features = [
+    {
+      icon: <Sparkles className="w-6 h-6" />,
+      title: "Intelligent Route Optimization",
+      description: "Smart geographic clustering minimizes transit fatigue and maximizes your daily sightseeing time.",
+      gradient: "from-teal-500 to-emerald-500"
+    },
+    {
+      icon: <Clock className="w-6 h-6" />,
+      title: "Time-Paced Day Schedules",
+      description: "Balanced morning, afternoon, and evening timelines with realistic durations and insider timing tips.",
+      gradient: "from-cyan-500 to-blue-500"
+    },
+    {
+      icon: <TrendingUp className="w-6 h-6" />,
+      title: "Dynamic Budget Intelligence",
+      description: "Tailored cost breakdowns with splurge recommendations and real-time budget saving advice.",
+      gradient: "from-blue-500 to-indigo-500"
+    },
+    {
+      icon: <Globe className="w-6 h-6" />,
+      title: "Live Booking Link Engine",
+      description: "Instant direct connections to real hotel, flight, car rental, and attraction booking platforms.",
+      gradient: "from-purple-500 to-pink-500"
+    },
+    {
+      icon: <Camera className="w-6 h-6" />,
+      title: "Hidden Gems & Culture",
+      description: "Discover authentic local bistros, scenic viewpoints, and off-the-beaten-path cultural experiences.",
+      gradient: "from-amber-500 to-orange-500"
+    },
+    {
+      icon: <Shield className="w-6 h-6" />,
+      title: "Interactive AI Co-Pilot",
+      description: "Fine-tune your itinerary in real-time with an AI assistant that rebalances days and swaps activities instantly.",
+      gradient: "from-emerald-500 to-teal-500"
+    }
+  ];
+
+  const steps = [
+    {
+      number: "01",
+      title: "Share Your Vision",
+      description: "Enter your target destinations, travel style, date flexibility, and unique interests."
+    },
+    {
+      number: "02",
+      title: "AI Crafts The Blueprint",
+      description: "Our multi-agent planner curates activities, estimates budgets, and plots smart travel routes."
+    },
+    {
+      number: "03",
+      title: "Customize, Export & Travel",
+      description: "Chat with the AI to refine plans, export clean PDFs, and click to book flights & stays."
+    }
+  ];
+
   return (
-    <>
-      
-        <section className="relative py-24 px-4 sm:px-6 lg:px-8 hero-gradient overflow-hidden">
-          
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-20 left-10 w-64 h-64 bg-gradient-to-r from-teal-400/10 to-cyan-400/10 rounded-full blur-3xl float-gentle"></div>
-            <div className="absolute bottom-20 right-10 w-80 h-80 bg-gradient-to-r from-blue-400/10 to-teal-400/10 rounded-full blur-3xl float-gentle" style={{animationDelay: '2s'}}></div>
-          </div>
+    <div className="overflow-hidden">
+      {/* Hero Section */}
+      <section className="relative pt-16 pb-24 px-4 sm:px-6 lg:px-8">
+        {/* Ambient Glowing Orbs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[700px] h-[450px] bg-gradient-to-tr from-teal-500/15 via-cyan-500/15 to-transparent rounded-full blur-3xl animate-pulse-glow"></div>
+          <div className="absolute top-1/2 -left-20 w-80 h-80 bg-teal-400/10 rounded-full blur-3xl"></div>
+          <div className="absolute top-1/3 -right-20 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
+        </div>
 
-          <div className="max-w-7xl mx-auto text-center relative z-10">
-            <div className={`transition-all duration-1000 ease-out ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-              <div className="inline-flex items-center px-6 py-3 bg-white/80 backdrop-blur-sm rounded-full shadow-lg mb-8 border border-white/40">
-                <Plane className="w-5 h-5 text-teal-600 mr-3" />
-                <span className="text-gray-700 font-medium">Ready for your next Adventure?</span>
-              </div>
-              
-              <h1 className="text-6xl md:text-8xl font-display mb-8 text-gray-900 leading-tight">
-                <span className="block">Travel Planning</span>
-                <span className="block text-gradient-primary">Reimagined</span>
-              </h1>
-              
-              <p className="text-xl md:text-2xl text-gray-600 max-w-4xl mx-auto mb-12 leading-relaxed font-body">
-                Experience the future of travel with AI-powered itineraries that understand your dreams, 
-                preferences, and budget to create journeys as unique as you are.
-              </p>
-              
-              <div className="flex justify-center items-center">
-                <Link
-                  href="/planner"
-                  className="group relative overflow-hidden px-10 py-5 bg-gradient-to-r from-teal-600 to-cyan-600 text-white font-semibold rounded-2xl transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-teal-700 to-cyan-700 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                  <span className="relative flex items-center">
-                    <Plane className="w-5 h-5 mr-3" />
-                    Start Your Journey
-                  </span>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        
-        <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-teal-50">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <div className="inline-flex items-center px-6 py-3 bg-blue-50 rounded-full mb-6">
-                <Sparkles className="w-5 h-5 text-blue-600 mr-2" />
-                <span className="text-blue-700 font-semibold">Hot Destinations for {month}</span>
-              </div>
-              <h2 className="text-4xl md:text-5xl font-display text-gray-900 mb-6">
-                Trending Places to Visit
-                <span className="text-gradient-secondary block">This {season}</span>
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto font-body">
-                Discover the perfect destinations for this time of year, with ideal weather conditions and unique seasonal experiences.
-              </p>
+        <div className="max-w-5xl mx-auto text-center relative z-10">
+          <div className={`transition-all duration-700 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+            
+            {/* Top Pill */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-teal-500/30 text-teal-700 dark:text-teal-300 text-xs sm:text-sm font-semibold mb-8 shadow-sm">
+              <span className="flex h-2 w-2 rounded-full bg-teal-500 animate-ping"></span>
+              <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+              <span>Next-Generation AI Travel Planning</span>
             </div>
 
-            {isLoadingDestinations ? (
-              <div className="flex justify-center items-center py-20">
-                <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-teal-500"></div>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                  {trendingDestinations.map((destination, index) => (
-                    <div
-                      key={index}
-                      className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 group"
-                    >
-                      <div className="h-48 relative overflow-hidden">
-                        {destination.imageUrl ? (
-                          <img
-                            src={destination.imageUrl}
-                            alt={destination.name}
-                            className="absolute inset-0 w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-teal-400 animate-pulse" />
-                        )}
-                        
-                        <div className="absolute inset-0 bg-opacity-30 flex items-center justify-center">
-                          <span className="text-white text-2xl font-bold drop-shadow-lg">{destination.name}</span>
-                        </div>
-                      </div>
-                      <div className="p-6">
-                        <h3 className="text-xl font-display text-gray-900 mb-2">{destination.name}, {destination.country}</h3>
-                        <p className="text-gray-600 text-sm mb-4">{destination.description}</p>
-                        <div className="space-y-2 mb-6">
-                          <div className="flex items-start">
-                            <MapPin className="w-4 h-4 text-teal-600 mt-1 mr-2 flex-shrink-0" />
-                            <span className="text-sm text-gray-700">{destination.mainAttraction}</span>
-                          </div>
-                          <div className="flex items-start">
-                            <Globe className="w-4 h-4 text-blue-600 mt-1 mr-2 flex-shrink-0" />
-                            <span className="text-sm text-gray-700">{destination.weather}</span>
-                          </div>
-                        </div>
-                        <Link
-                          href={`/planner?destination=${encodeDestination(destination)}`}
-                          className="block w-full py-3 bg-gradient-to-r from-teal-500 to-blue-500 text-white text-center rounded-xl font-medium hover:from-teal-600 hover:to-blue-600 transition-colors"
-                        >
-                          Plan Trip to {destination.name}
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
+            {/* Main Headline */}
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.1] mb-6">
+              Design Your Dream Journey in <span className="text-gradient-primary">Seconds</span>
+            </h1>
+
+            {/* Subheadline */}
+            <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-3xl mx-auto mb-10 leading-relaxed font-normal">
+              Roavo crafts hyper-personalized, multi-day itineraries tailored to your pace, budget, and passions—with interactive maps, real booking links, and smart daily routes.
+            </p>
+
+            {/* Interactive Search / Prompt Box */}
+            <form onSubmit={handleQuickPromptSubmit} className="max-w-2xl mx-auto mb-6">
+              <div className="relative flex flex-col sm:flex-row items-center p-2 rounded-2xl sm:rounded-full bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl shadow-teal-500/5 focus-within:border-teal-500 focus-within:ring-4 focus-within:ring-teal-500/15 transition-all">
+                <div className="flex items-center w-full px-3 py-2 sm:py-0">
+                  <Compass className="w-5 h-5 text-teal-600 dark:text-teal-400 mr-3 shrink-0" />
+                  <input
+                    type="text"
+                    value={quickPrompt}
+                    onChange={(e) => setQuickPrompt(e.target.value)}
+                    placeholder="Where to? (e.g., 7 days in Switzerland & Italy on a budget)"
+                    className="w-full bg-transparent border-none text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none text-sm sm:text-base"
+                  />
                 </div>
-
-                <div className="text-center mt-12">
-                  <Link
-                    href="/explore"
-                    className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all font-medium shadow-md hover:shadow-lg transform hover:scale-105"
-                  >
-                    <Sparkles className="w-5 h-5 mr-2" />
-                    Explore More Destinations
-                  </Link>
-                </div>
-              </>
-            )}
-          </div>
-        </section>
-
-        
-        <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-20">
-              <div className="inline-flex items-center px-6 py-3 bg-teal-50 rounded-full mb-6">
-                <Star className="w-5 h-5 text-teal-600 mr-2" />
-                <span className="text-teal-700 font-semibold">Why Choose Roavo</span>
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto btn-primary shrink-0 mt-2 sm:mt-0 !py-3 !px-6 !text-sm"
+                >
+                  <Plane className="w-4 h-4 mr-2" />
+                  <span>Generate</span>
+                </button>
               </div>
-              <h2 className="text-5xl md:text-6xl font-display text-gray-900 mb-8">
-                Travel Planning
-                <span className="text-gradient-primary block">Made Simple</span>
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto font-body">
-                We combine cutting-edge AI technology with travel expertise to create experiences that exceed your expectations.
-              </p>
+            </form>
+
+            {/* Quick Inspiration Pills */}
+            <div className="flex flex-wrap items-center justify-center gap-2 mb-14 text-xs text-slate-500 dark:text-slate-400">
+              <span className="font-medium text-slate-700 dark:text-slate-300">Try asking:</span>
+              {samplePrompts.map((prompt, i) => (
+                <button
+                  key={i}
+                  onClick={() => setQuickPrompt(prompt)}
+                  className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-teal-50 dark:hover:bg-teal-950/50 hover:text-teal-600 dark:hover:text-teal-300 transition-colors border border-slate-200/60 dark:border-slate-700/60"
+                >
+                  &quot;{prompt}&quot;
+                </button>
+              ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {features.map((feature, index) => (
-                <div
-                  key={index}
-                  className={`card-elevated p-8 group cursor-pointer transition-all duration-700 ease-out ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}
-                  style={{ transitionDelay: `${index * 100}ms` }}
-                >
-                  <div className={`w-16 h-16 bg-gradient-to-r ${feature.color} rounded-2xl flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform duration-500 ease-out`}>
-                    {feature.icon}
+            {/* Stat Counters */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 pt-6 border-t border-slate-200/70 dark:border-slate-800/80 max-w-4xl mx-auto">
+              <div className="text-center p-3">
+                <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">50k+</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Trips Planned</div>
+              </div>
+              <div className="text-center p-3">
+                <div className="text-2xl sm:text-3xl font-extrabold text-teal-600 dark:text-teal-400">120+</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Global Destinations</div>
+              </div>
+              <div className="text-center p-3">
+                <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">4.9 / 5</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Traveler Satisfaction</div>
+              </div>
+              <div className="text-center p-3">
+                <div className="text-2xl sm:text-3xl font-extrabold text-cyan-600 dark:text-cyan-400">100%</div>
+                <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Free & Instant</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* Trending Destinations Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white/50 dark:bg-slate-900/40 border-y border-slate-200/60 dark:border-slate-800/60">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-50 dark:bg-cyan-950/40 text-cyan-700 dark:text-cyan-300 text-xs font-semibold mb-3 border border-cyan-200/60 dark:border-cyan-800/40">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Handpicked for {month}</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
+                Trending Places to Visit <span className="text-gradient-primary">This {season}</span>
+              </h2>
+              <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base mt-2 max-w-2xl">
+                Curated global destinations with optimal weather conditions, vibrant local events, and unforgettable seasonal vibes.
+              </p>
+            </div>
+            <Link
+              href="/explore"
+              className="inline-flex items-center space-x-2 text-sm font-semibold text-teal-600 dark:text-teal-400 hover:text-teal-700 transition-colors group"
+            >
+              <span>Explore all destinations</span>
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+
+          {isLoadingDestinations ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900">
+                  <div className="h-52 skeleton-shimmer"></div>
+                  <div className="p-5 space-y-3">
+                    <div className="h-5 w-3/4 skeleton-shimmer rounded"></div>
+                    <div className="h-4 w-full skeleton-shimmer rounded"></div>
+                    <div className="h-10 w-full skeleton-shimmer rounded-xl mt-4"></div>
                   </div>
-                  <h3 className="text-xl font-display text-gray-900 mb-4">{feature.title}</h3>
-                  <p className="text-gray-600 leading-relaxed font-body">{feature.description}</p>
                 </div>
               ))}
             </div>
-          </div>
-        </section>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {trendingDestinations.map((destination, index) => (
+                <div
+                  key={index}
+                  className="glass-card glass-card-hover rounded-2xl overflow-hidden flex flex-col group"
+                >
+                  <div className="h-52 relative overflow-hidden bg-slate-100 dark:bg-slate-800">
+                    {destination.imageUrl ? (
+                      <img
+                        src={destination.imageUrl}
+                        alt={destination.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-tr from-teal-500/20 to-cyan-500/20 flex items-center justify-center">
+                        <MapPin className="w-8 h-8 text-teal-500 opacity-60" />
+                      </div>
+                    )}
+                    
+                    {/* Gradient Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent"></div>
+                    
+                    {/* Destination Name Badge */}
+                    <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
+                      <div>
+                        <span className="text-xs font-medium uppercase tracking-wider text-teal-300">
+                          {destination.country}
+                        </span>
+                        <h3 className="text-xl font-bold text-white leading-tight">
+                          {destination.name}
+                        </h3>
+                      </div>
+                      {destination.weather && (
+                        <span className="px-2 py-1 rounded-md bg-white/20 backdrop-blur-md text-[11px] font-semibold text-white">
+                          {destination.weather.split(',')[0]}
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-        
-        <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-teal-600 via-cyan-600 to-blue-600 relative overflow-hidden">
-          
-          <div className="absolute inset-0 opacity-10">
-            <svg className="w-full h-full" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <pattern id="plane-pattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-                  <path d="M10 2L18 10L10 18L2 10Z" fill="white" opacity="0.1"/>
-                </pattern>
-              </defs>
-              <rect width="100" height="100" fill="url(#plane-pattern)" />
-            </svg>
-          </div>
+                  <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
+                      {destination.description}
+                    </p>
 
-          <div className="max-w-4xl mx-auto text-center relative z-10">
-          
-            <h2 className="text-5xl font-display text-white mb-8">
-              Your Dream Trip
-              <span className="block">Starts Here</span>
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 space-y-2 text-xs text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-3.5 h-3.5 text-teal-500 shrink-0" />
+                        <span className="truncate">{destination.mainAttraction}</span>
+                      </div>
+                    </div>
+
+                    <Link
+                      href={`/planner?destination=${encodeDestination(destination)}`}
+                      className="w-full py-2.5 px-4 rounded-xl text-xs font-semibold text-center text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/50 hover:bg-teal-600 hover:text-white dark:hover:bg-teal-500 dark:hover:text-slate-950 border border-teal-200 dark:border-teal-800/60 transition-all duration-200 flex items-center justify-center gap-1.5"
+                    >
+                      <Plane className="w-3.5 h-3.5" />
+                      <span>Plan Trip to {destination.name}</span>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 text-xs font-semibold mb-3 border border-teal-200/60 dark:border-teal-800/40">
+              <Compass className="w-3.5 h-3.5" />
+              <span>Effortless Planning Flow</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
+              How Roavo Builds Your <span className="text-gradient-primary">Perfect Trip</span>
             </h2>
-            
-            <p className="text-xl text-teal-100 mb-10 max-w-2xl mx-auto font-body">
-            Your next unforgettable journey starts here.  
-            Roavo creates personalized trip itineraries in just a few clicks.
+            <p className="text-slate-600 dark:text-slate-400 text-base mt-3">
+              Forget hours of fragmented tabs and spreadsheet chaos. Everything you need is synthesized in 3 simple steps.
             </p>
-            
-            <Link
-              href="/planner"
-              className="group inline-flex items-center px-10 py-5 bg-white text-teal-600 font-semibold rounded-2xl hover:bg-gray-50 transition-all duration-300 hover:scale-105 shadow-2xl"
-            >
-              <Plane className="w-6 h-6 mr-3 group-hover:translate-x-1 transition-transform duration-300" />
-              Plan Your Trip Now
-            </Link>
           </div>
-        </section>
-    </>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+            {steps.map((step, idx) => (
+              <div
+                key={idx}
+                className="glass-card rounded-2xl p-8 relative overflow-hidden group hover:border-teal-500/40 transition-all duration-300"
+              >
+                <div className="text-5xl font-black text-slate-200 dark:text-slate-800/80 mb-4 select-none group-hover:text-teal-500/20 transition-colors">
+                  {step.number}
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
+                  {step.title}
+                </h3>
+                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                  {step.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-50/60 dark:bg-slate-900/30 border-y border-slate-200/60 dark:border-slate-800/60">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Engineered For Smarter, Smoother Travel
+            </h2>
+            <p className="text-slate-600 dark:text-slate-400 text-base mt-3">
+              Packed with features designed to take you from daydreaming to departure without stress.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((feature, i) => (
+              <div
+                key={i}
+                className="glass-card p-6 rounded-2xl group hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between"
+              >
+                <div>
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-tr ${feature.gradient} text-white flex items-center justify-center mb-5 shadow-md shadow-teal-500/10 group-hover:scale-110 transition-transform duration-300`}>
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                    {feature.title}
+                  </h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Bottom CTA Banner */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        <div className="max-w-5xl mx-auto rounded-3xl bg-gradient-to-r from-teal-600 via-cyan-600 to-teal-700 p-8 sm:p-14 text-center text-white relative shadow-2xl shadow-teal-900/30 overflow-hidden">
+          
+          {/* Subtle Graphic background */}
+          <div className="absolute -right-20 -top-20 w-80 h-80 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
+          <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-cyan-300/10 rounded-full blur-2xl pointer-events-none"></div>
+
+          <div className="relative z-10 max-w-3xl mx-auto space-y-6">
+            <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
+              Ready to Craft Your Next Epic Adventure?
+            </h2>
+            <p className="text-teal-100 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
+              No spreadsheets. No guesswork. Just your ideal trip, mapped and organized down to every coffee break and viewpoint.
+            </p>
+            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                href="/planner"
+                className="w-full sm:w-auto px-8 py-4 bg-white text-teal-700 font-bold rounded-full shadow-lg hover:shadow-xl hover:bg-slate-50 transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2"
+              >
+                <Plane className="w-5 h-5" />
+                <span>Start AI Trip Planner</span>
+              </Link>
+              <Link
+                href="/explore"
+                className="w-full sm:w-auto px-7 py-4 bg-teal-800/60 hover:bg-teal-800/80 text-white font-semibold rounded-full border border-teal-400/30 transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <Compass className="w-5 h-5" />
+                <span>Explore Destinations</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }
